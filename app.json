@@ -1,0 +1,146 @@
+{
+  "id": "krea",
+  "name": "Krea",
+  "description": "Generate images, or transform what is on the canvas, using Krea's models. The result lands back in your document.",
+  "version": "1.5.1",
+  "author": "Bridge for Affinity",
+  "homepage": "https://www.krea.ai/docs/api-reference/introduction",
+  "runLabel": "Generate",
+  "main": "index.js",
+  "secrets": [
+    {
+      "key": "KREA_API_KEY",
+      "label": "Krea API key",
+      "help": "Create one at krea.ai under Settings, API tokens. It is stored outside this app's folder."
+    }
+  ],
+  "fields": [
+    {
+      "key": "model",
+      "type": "select",
+      "label": "Model",
+      "optionsFrom": "models",
+      "default": "krea/krea-2/large",
+      "options": [
+        {
+          "value": "krea/krea-2/large",
+          "label": "Krea 2 Large"
+        },
+        {
+          "value": "krea/krea-2/medium",
+          "label": "Krea 2 Medium"
+        },
+        {
+          "value": "krea/krea-2/turbo",
+          "label": "Krea 2 Turbo"
+        },
+        {
+          "value": "google/nano-banana-pro",
+          "label": "Nano Banana Pro"
+        },
+        {
+          "value": "google/nano-banana",
+          "label": "Nano Banana"
+        },
+        {
+          "value": "black-forest-labs/flux-kontext",
+          "label": "FLUX Kontext"
+        },
+        {
+          "value": "black-forest-labs/flux-1.1-pro",
+          "label": "FLUX 1.1 Pro"
+        },
+        {
+          "value": "openai/chatgpt-image",
+          "label": "ChatGPT Image"
+        }
+      ],
+      "help": "Krea's own models need a size on the end of the name. Press refresh to pull what your account can reach."
+    },
+    {
+      "key": "prompt",
+      "type": "textarea",
+      "label": "Prompt",
+      "placeholder": "A cinematic product photo of a glass lamp on a marble table",
+      "required": true
+    },
+    {
+      "key": "image",
+      "type": "image",
+      "label": "Start from",
+      "source": "none",
+      "sources": [
+        "none",
+        "selection",
+        "artboard",
+        "layer",
+        "spread",
+        "document",
+        "file"
+      ],
+      "help": "Leave on Nothing to generate from the prompt alone. Anything else sends that artwork as the starting point."
+    },
+    {
+      "key": "strength",
+      "type": "slider",
+      "label": "How far from the original",
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "default": 0.8,
+      "showIf": [
+        {
+          "key": "image",
+          "isEmpty": false
+        },
+        {
+          "key": "model",
+          "startsWith": "krea/"
+        }
+      ],
+      "help": "Krea 2 only, and only when you start from artwork. Lower keeps more of what you sent.",
+      "advanced": true
+    },
+    {
+      "key": "aspect",
+      "type": "select",
+      "label": "Aspect ratio",
+      "default": "1:1",
+      "options": [
+        "1:1",
+        "4:3",
+        "3:2",
+        "16:9",
+        "2.35:1",
+        "4:5",
+        "2:3",
+        "9:16"
+      ],
+      "optionsFrom": "aspects",
+      "dependsOn": "model",
+      "help": "The list follows the model you picked."
+    },
+    {
+      "key": "resolution",
+      "type": "select",
+      "label": "Resolution",
+      "default": "1K",
+      "options": [
+        "1K",
+        "2K",
+        "4K"
+      ],
+      "help": "Krea 2 only offers 1K, so the list changes with the model.",
+      "optionsFrom": "resolutions",
+      "dependsOn": "model",
+      "advanced": true
+    },
+    {
+      "key": "place",
+      "type": "checkbox",
+      "label": "Place the result in the document when it arrives",
+      "default": true,
+      "advanced": true
+    }
+  ]
+}
