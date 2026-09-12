@@ -259,18 +259,42 @@ module.exports = {
     }
 
     if (ctx.input.place !== false) {
-      const doc = await ctx.affinity.info();
-      if (doc.open) {
-          // Back where it came from, at the size it was, inside the same
-        // artboard — rather than at the spread's origin.
-        for (const image of images) {
-          await (source
-            ? ctx.affinity.putBack(image.path, source)
-            : ctx.affinity.placeImage(image.path, {}));
-        }
+      const direct = ctx.input.__bridgeDirect === true;
+      if (direct && images.length === 1) {
+        // Placement is deferred until the helper's synchronous HTTP call has
+        // returned to Affinity.
+        await (source
+          ? ctx.affinity.putBack(images[0].path, source)
+          : ctx.affinity.placeImage(images[0].path, {}));
         ctx.progress("Placed in the document");
+      } else if (direct && images.length > 1) {
+        return {
+          message: `${images.length} results ready to choose from`,
+          __bridgeChoice: {
+            question: "Which Krea result?",
+            paths: images.map((image) => image.path),
+            options: images.map((_, i) => `Version ${i + 1}`),
+            source,
+          },
+          images,
+        };
       } else {
-        ctx.log.warn("No document is open, so the images are waiting in the handover folder.");
+        const doc = await ctx.affinity.info();
+        if (!doc.open) {
+          ctx.log.warn("No document is open, so the images are waiting in the handover folder.");
+        } else if (images.length === 1) {
+          // One picture is not a decision, so it goes home without being asked.
+          await (source
+            ? ctx.affinity.putBack(images[0].path, source)
+            : ctx.affinity.placeImage(images[0].path, {}));
+          ctx.progress("Placed in the document");
+        } else {
+          // Several are. A picture on top of a picture on top of a picture is
+          // not a choice, it is a mess, so they wait to be looked through.
+          ctx.log.warn(
+            `${images.length} came back, so none were placed. Look through them and place the one you want.`,
+          );
+        }
       }
     }
 

@@ -1,9 +1,8 @@
-# Krea Connector for Affinity
-Generate a new image from a prompt, or transform artwork already in an Affinity document, with [Krea's image API](https://www.krea.ai/docs/api-reference/introduction). The finished image is returned to Bridge for Affinity and, when there is one result and a document is open, placed back into the document automatically.
+# Krea for Connector for Affinity
 
+![Krea Connector for Affinity](docs/Header.jpg)
 
-![screenshot of Krea Connector](/docs/screenshot.png)
-
+Generate a new image from a prompt, or transform artwork already in an Affinity document, with [Krea's image API](https://www.krea.ai/docs/api-reference/introduction). The finished image is returned to Connector for Affinity and, when there is one result and a document is open, placed back into the document automatically.
 
 ## What you need
 
@@ -11,7 +10,7 @@ Generate a new image from a prompt, or transform artwork already in an Affinity 
 - A Krea account with API access and available credits.
 - A Krea API token. In Krea, open **Settings → API tokens** and create one.
 
-Your token is stored in Bridge for Affinity's private credential store, outside this connector's folder. It is never committed to this repository.
+Your token is stored in Connector for Affinity's private credential store, outside this connector's folder. It is never committed to this repository.
 
 ## Install from the Marketplace
 
@@ -19,7 +18,7 @@ Your token is stored in Bridge for Affinity's private credential store, outside 
 2. Choose **Browse** in the sidebar.
 3. Search for **Krea**.
 4. Select it and press **Install**.
-5. Open **Krea** from the Connectors list. On its first run, paste the Krea API token when Bridge asks for it.
+5. Open **Krea** from the Connectors list. On its first run, paste the Krea API token when Connector for Affinity asks for it.
 
 The Marketplace installs the connector and keeps its settings and API token when a newer connector version is installed later. There is no need to download this folder or copy files by hand.
 
@@ -31,7 +30,9 @@ The Marketplace installs the connector and keeps its settings and API token when
 4. Choose an aspect ratio. The available aspect ratios and resolutions adjust to the selected model.
 5. Press **Generate**.
 
-Krea jobs run in the background. When the result arrives, Bridge downloads it and places a single image into the open Affinity document by default. If Krea returns several images, Bridge leaves them in the result view so you can choose which one to place rather than stacking every variant into the document.
+![Krea running from an Affinity document](docs/screenshot.png)
+
+Krea jobs run in the background. When the result arrives, Connector for Affinity downloads it and places a single image into the open Affinity document by default. If Krea returns several images, Connector for Affinity leaves them in the result view so you can choose which one to place rather than stacking every variant into the document.
 
 ## Controls
 
@@ -53,4 +54,4 @@ Krea jobs run in the background. When the result arrives, Bridge downloads it an
 
 ## Development
 
-This connector consists of [`app.json`](app.json), which describes the Bridge form, and [`index.js`](index.js), which calls Krea, waits for the job, downloads the result, and returns it to Affinity. Install it from the Marketplace for normal use; the files here are for review and development.
+This connector consists of [`app.json`](app.json), which describes the Connector for Affinity form, and [`index.js`](index.js), which calls Krea, waits for the job, downloads the result, and returns it to Affinity. Install it from the Marketplace for normal use; the files here are for review and development.
