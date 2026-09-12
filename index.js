@@ -39,8 +39,8 @@ const MODELS = [
     supportsStrength: true,
   },
   {
-    value: "krea/krea-2/turbo",
-    label: "Krea 2 Turbo",
+    value: "krea/krea-2/medium-turbo",
+    label: "Krea 2 Medium Turbo",
     group: "Krea",
     imageField: "image_url",
     resolutions: ["1K"],
@@ -61,36 +61,180 @@ const MODELS = [
     label: "Nano Banana",
     group: "Google",
     imageField: "image_urls",
-    resolutions: ["1K", "2K"],
+    resolutions: [],
+    aspects: ["21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16"],
+    needsAspect: true,
   },
   {
-    value: "black-forest-labs/flux-kontext",
+    value: "google/nano-banana-2",
+    label: "Nano Banana 2",
+    group: "Google",
+    imageField: "image_urls",
+    resolutions: ["1K", "2K", "4K"],
+    aspects: ["4:1", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16", "1:4", "1:8"],
+    needsAspect: true,
+  },
+  {
+    value: "z-image/z-image",
+    label: "Z Image",
+    group: "Z Image",
+    imageField: "image_url",
+    resolutions: ["1K"],
+    aspects: ["1:1", "4:3", "2:3", "16:9", "9:16"],
+    needsAspect: true,
+  },
+  {
+    value: "bytedance/seedream-5-pro",
+    label: "Seedream 5 Pro",
+    group: "ByteDance",
+    imageField: "style_images",
+    dimensions: true,
+  },
+  {
+    value: "bytedance/seedream-5-lite",
+    label: "Seedream 5 Lite",
+    group: "ByteDance",
+    imageField: "style_images",
+    dimensions: true,
+  },
+  {
+    value: "openai/gpt-image-2.5-flare",
+    label: "GPT Image 2.5 Flare",
+    group: "OpenAI",
+    imageField: "image_urls",
+    resolutions: ["1K", "2K", "4K"],
+    aspects: ["16:9", "2:1", "3:2", "4:3", "1:1", "3:4", "2:3", "1:2", "9:16"],
+    needsAspect: true,
+  },
+  {
+    value: "openai/gpt-image-2.5-sunburst",
+    label: "GPT Image 2.5 Sunburst",
+    group: "OpenAI",
+    imageField: "image_urls",
+    resolutions: ["1K", "2K", "4K"],
+    aspects: ["16:9", "2:1", "3:2", "4:3", "1:1", "3:4", "2:3", "1:2", "9:16"],
+    needsAspect: true,
+  },
+  {
+    value: "bfl/flux-1-kontext-dev",
     label: "FLUX Kontext",
     group: "Black Forest Labs",
-    imageField: "image_urls",
+    imageField: "image_url",
+    dimensions: true,
   },
   {
-    value: "black-forest-labs/flux-1.1-pro",
+    value: "bfl/flux-1.1-pro",
     label: "FLUX 1.1 Pro",
     group: "Black Forest Labs",
-    imageField: "image_urls",
+    imageField: "none",
+    dimensions: true,
   },
   {
-    value: "openai/chatgpt-image",
+    value: "openai/gpt-image",
     label: "ChatGPT Image",
     group: "OpenAI",
     imageField: "image_urls",
+    dimensions: true,
   },
 ];
 
+// Stored preferences may contain an endpoint name from a version published
+// before Krea's current OpenAPI. Keep those choices useful rather than turning
+// them into a surprising 404 after an update.
+const MODEL_ALIASES = {
+  "krea/krea-2/turbo": "krea/krea-2/medium-turbo",
+  "black-forest-labs/flux-kontext": "bfl/flux-1-kontext-dev",
+  "black-forest-labs/flux-1.1-pro": "bfl/flux-1.1-pro",
+  "openai/chatgpt-image": "openai/gpt-image",
+  "openai/gpt-image-2.5/flare": "openai/gpt-image-2.5-flare",
+  "openai/gpt-image-2.5/sunburst": "openai/gpt-image-2.5-sunburst",
+};
+
+const DEFAULT_ASPECTS = ["1:1", "4:3", "3:2", "16:9", "4:5", "2:3", "9:16"];
+const RESOLUTION_PIXELS = { "1K": 1024, "2K": 2048, "4K": 4096 };
+
+function canonicalModel(id) {
+  return MODEL_ALIASES[id] || id;
+}
+
 function specFor(id) {
   return (
-    MODELS.find((m) => m.value === id) || {
+    MODELS.find((m) => m.value === canonicalModel(id)) || {
       value: id,
       label: id,
       imageField: "image_urls",
     }
   );
+}
+
+function dimensionsFor(aspect, resolution) {
+  const [wide, tall] = String(aspect || "1:1").split(":").map(Number);
+  const ratio = wide > 0 && tall > 0 ? wide / tall : 1;
+  const longSide = RESOLUTION_PIXELS[resolution] || RESOLUTION_PIXELS["1K"];
+  if (ratio >= 1) return { width: longSide, height: Math.max(1, Math.round(longSide / ratio)) };
+  return { width: Math.max(1, Math.round(longSide * ratio)), height: longSide };
+}
+
+// Krea has used both REST job replies and the newer SDK-style result envelope.
+// Accept the useful parts from either shape so a completed image is not lost
+// merely because it did not arrive through the old `{ job_id }` response.
+function jobIdFrom(data) {
+  const candidates = [
+    data,
+    data && data.job,
+    data && data.data,
+    data && data.result,
+    data && data.output,
+  ];
+  for (const value of candidates) {
+    if (!value || typeof value !== "object") continue;
+    for (const key of ["job_id", "jobId", "id"]) {
+      if (typeof value[key] === "string" || typeof value[key] === "number") return String(value[key]);
+    }
+  }
+  return "";
+}
+
+function urlsFrom(data) {
+  const candidates = [
+    data,
+    data && data.result,
+    data && data.data,
+    data && data.data && data.data.result,
+    data && data.output,
+    data && data.output && data.output.result,
+  ];
+  for (const value of candidates) {
+    if (!value || typeof value !== "object") continue;
+    if (Array.isArray(value.urls) && value.urls.length) return value.urls.map(String);
+    if (typeof value.url === "string" && value.url) return [value.url];
+  }
+  return [];
+}
+
+function responseFields(data) {
+  return data && typeof data === "object" ? Object.keys(data).slice(0, 12).join(", ") || "no fields" : typeof data;
+}
+
+// Some Krea edge nodes answer JSON with a non-JSON content type. The worker
+// correctly keeps the raw text in that case; recover it here before deciding a
+// successful request contains no job.
+function responseData(reply) {
+  if (reply && reply.data !== undefined) return reply.data;
+  const text = String((reply && reply.text) || "").trim();
+  if (!text) return undefined;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function responseDescription(reply, data) {
+  const contentType = (reply && reply.contentType) || "no content type";
+  const text = String((reply && reply.text) || "").trim();
+  if (!text || data !== text) return `content type: ${contentType}`;
+  return `content type: ${contentType}; body: ${text.slice(0, 300)}`;
 }
 
 async function authHeaders(ctx) {
@@ -105,13 +249,21 @@ async function authHeaders(ctx) {
 const INLINE_LIMIT_BYTES = 512 * 1024;
 
 async function artworkUrl(ctx, source, headers) {
-  if (source.bytes <= INLINE_LIMIT_BYTES) {
+  // The Affinity helper cannot know the exported file's size at the moment it
+  // returns its path, so `source.bytes` is deliberately 0 there. Measure the
+  // real file here before choosing between a compact data URI and an upload.
+  const bytes = await ctx.files.read(source.path);
+  const actualBytes = bytes.byteLength;
+  if (!actualBytes) {
+    throw new Error("Affinity exported an empty image. Select visible artwork and try again.");
+  }
+
+  if (actualBytes <= INLINE_LIMIT_BYTES) {
     ctx.progress("Reading the artwork");
-    return ctx.files.toDataUri(source.path);
+    return { url: await ctx.files.toDataUri(source.path), bytes: actualBytes };
   }
 
   ctx.progress("Uploading the artwork");
-  const bytes = await ctx.files.read(source.path);
   const form = new FormData();
   form.append("file", new Blob([bytes], { type: "image/png" }), source.filename || "artwork.png");
   form.append("description", "From Affinity, via Connector for Affinity");
@@ -125,14 +277,14 @@ async function artworkUrl(ctx, source, headers) {
 
   if (upload.ok && upload.data && (upload.data.image_url || upload.data.url)) {
     const url = upload.data.image_url || upload.data.url;
-    ctx.log(`Uploaded ${Math.round(source.bytes / 1024)} KB as an asset`);
-    return url;
+    ctx.log(`Uploaded ${Math.round(actualBytes / 1024)} KB as an asset`);
+    return { url, bytes: actualBytes };
   }
 
   ctx.log.warn(
     `Uploading the asset did not work (HTTP ${upload.status}), sending it inline instead`,
   );
-  return ctx.files.toDataUri(source.path);
+  return { url: await ctx.files.toDataUri(source.path), bytes: actualBytes };
 }
 
 module.exports = {
@@ -179,40 +331,52 @@ module.exports = {
     const prompt = String(ctx.input.prompt || "").trim();
     if (prompt.length < 3) throw new Error("Write a prompt of at least three characters.");
 
-    const model = String(ctx.input.model || "krea/krea-2/large");
+    const selectedModel = String(ctx.input.model || "krea/krea-2/large");
+    const model = canonicalModel(selectedModel);
     const spec = specFor(model);
     const headers = await authHeaders(ctx);
     const body = { prompt };
 
-    // Only send a resolution the model actually accepts. Krea 2 rejects
-    // anything above 1K rather than quietly stepping down.
+    // The form always offers the same three familiar output sizes. Some models
+    // (notably Krea 2) only accept 1K, so ignore an unavailable higher choice
+    // rather than making Affinity's fixed dialog lie about what it can show.
     const wanted = ctx.input.resolution || "1K";
-    if (spec.resolutions) {
+    if (Array.isArray(spec.resolutions) && spec.resolutions.length) {
       const resolution = spec.resolutions.includes(wanted) ? wanted : spec.resolutions[0];
       if (resolution !== wanted) {
-        ctx.log.warn(`${spec.label} only offers ${spec.resolutions.join(", ")} — using ${resolution}`);
+        ctx.log.warn(`${spec.label} only offers ${spec.resolutions.join(", ")} — ignoring ${wanted}`);
       }
       body.resolution = resolution;
-    } else if (wanted) {
+    } else if (!Array.isArray(spec.resolutions) && !spec.dimensions && wanted) {
       body.resolution = wanted;
+    } else if (Array.isArray(spec.resolutions) && !spec.resolutions.length && wanted !== "1K") {
+      ctx.log.warn(`${spec.label} does not accept a resolution setting — ignoring ${wanted}`);
     }
 
     const source = ctx.input.image;
     if (source && source.path) {
-      const reference = await artworkUrl(ctx, source, headers);
-      // Singular string for Krea's own models, an array for everyone else.
-      body[spec.imageField] = spec.imageField === "image_url" ? reference : [reference];
+      const artwork = await artworkUrl(ctx, source, headers);
+      const reference = artwork.url;
+      if (spec.imageField === "none") {
+        ctx.log.warn(`${spec.label} does not accept a reference image — generating from the prompt only`);
+      } else if (spec.imageField === "style_images") {
+        body.style_images = [{ url: reference, strength: 1 }];
+      } else {
+        // Singular string for Krea and Z Image, an array for the other APIs.
+        body[spec.imageField] = spec.imageField === "image_url" ? reference : [reference];
+      }
       if (spec.supportsStrength && ctx.input.strength !== undefined && ctx.input.strength !== "") {
         body.strength = Number(ctx.input.strength);
       }
-      ctx.log(`Sending ${Math.round(source.bytes / 1024)} KB of artwork from the ${source.source}`);
+      ctx.log(`Sending ${Math.round(artwork.bytes / 1024)} KB of artwork from the ${source.source}`);
     }
 
-    // Krea 2 requires an aspect ratio even when working from an image.
-    const aspect = ctx.input.aspect || "1:1";
-    if (spec.needsAspect || !source || !source.path) {
-      body.aspect_ratio = spec.aspects && !spec.aspects.includes(aspect) ? spec.aspects[0] : aspect;
-    }
+    const chosenAspect = ctx.input.aspect || "1:1";
+    const aspects = spec.aspects || DEFAULT_ASPECTS;
+    const aspect = aspects.includes(chosenAspect) ? chosenAspect : aspects[0];
+    if (chosenAspect !== aspect) ctx.log.warn(`${spec.label} does not support ${chosenAspect} — using ${aspect}`);
+    if (spec.dimensions) Object.assign(body, dimensionsFor(aspect, wanted));
+    else if (spec.needsAspect || !source || !source.path) body.aspect_ratio = aspect;
 
     ctx.progress("Submitting the job");
     const url = `${BASE}/generate/image/${model}`;
@@ -226,29 +390,44 @@ module.exports = {
       throw new Error(krea(submit, "Krea refused the job"));
     }
 
-    const jobId = submit.data && (submit.data.job_id || submit.data.id);
-    if (!jobId) throw new Error("Krea accepted the request but returned no job id");
-    ctx.log("Job", jobId, "accepted");
+    const submitData = responseData(submit);
+    const completed = urlsFrom(submitData);
+    const jobId = jobIdFrom(submitData);
+    let urls = completed;
 
-    const urls = await ctx.until(
-      async (attempt) => {
-        const poll = await ctx.http.get(`${BASE}/jobs/${jobId}`, { headers });
-        const job = poll.data || {};
-        const status = String(job.status || "unknown");
-        ctx.progress(`${status} (checked ${attempt}×)`);
+    if (urls.length) {
+      ctx.log(`Krea returned ${urls.length} completed image${urls.length === 1 ? "" : "s"}`);
+    } else {
+      if (!jobId) {
+        throw new Error(
+          `Krea accepted the request but returned neither a job id nor image URLs (fields: ${responseFields(submitData)}; ${responseDescription(submit, submitData)}).`,
+        );
+      }
+      ctx.log("Job", jobId, "accepted");
 
-        if (status === "completed") {
-          const found = (job.result && job.result.urls) || [];
-          if (!found.length) throw new Error("Krea finished the job but returned no images");
-          return found;
-        }
-        if (status === "failed" || status === "cancelled") {
-          throw new Error(`Krea reported the job as ${status}: ${job.error || "no reason given"}`);
-        }
-        return undefined; // keep waiting
-      },
-      { everyMs: 2500, message: "Krea did not finish in time. The job may still complete on their side." },
-    );
+      urls = await ctx.until(
+        async (attempt) => {
+          const poll = await ctx.http.get(`${BASE}/jobs/${jobId}`, { headers });
+          const response = responseData(poll) || {};
+          const job = response.job || response.data || response;
+          const status = String(job.status || response.status || "unknown");
+          ctx.progress(`${status} (checked ${attempt}×)`);
+
+          if (status === "completed") {
+            const found = urlsFrom(response);
+            if (!found.length) throw new Error("Krea finished the job but returned no images");
+            return found;
+          }
+          if (status === "failed" || status === "cancelled") {
+            throw new Error(
+              `Krea reported the job as ${status}: ${job.error || response.error || "no reason given"}`,
+            );
+          }
+          return undefined; // keep waiting
+        },
+        { everyMs: 2500, message: "Krea did not finish in time. The job may still complete on their side." },
+      );
+    }
 
     ctx.progress("Downloading");
     const images = [];
@@ -308,6 +487,26 @@ module.exports = {
 // Krea reports problems in a few different shapes; show whichever one arrived.
 function krea(reply, fallback) {
   const data = reply.data || {};
-  const detail = data.error || data.message || data.detail || (reply.text || "").slice(0, 300);
+  const detail = describeKreaError(
+    data.error || data.message || data.detail || data.details || data.errors || (reply.text || "").slice(0, 500),
+  );
   return `${fallback} (HTTP ${reply.status})${detail ? ": " + detail : ""}`;
+}
+
+function describeKreaError(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map(describeKreaError).filter(Boolean).join("; ").slice(0, 500);
+  if (typeof value === "object") {
+    const path = value.path || value.field || value.location;
+    const message = value.message || value.detail || value.error || value.reason;
+    if (path && message) return `${path}: ${describeKreaError(message)}`;
+    if (message) return describeKreaError(message);
+    try {
+      return JSON.stringify(value).slice(0, 500);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
 }

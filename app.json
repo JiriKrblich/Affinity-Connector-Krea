@@ -2,11 +2,12 @@
   "id": "krea",
   "name": "Krea",
   "description": "Generate images, or transform what is on the canvas, using Krea's models. The result lands back in your document.",
-  "version": "1.5.4",
+  "version": "1.5.11",
   "testedWith": "Affinity 3.2.3 · Connector for Affinity 1.0.0",
-  "author": "Connector for Affinity",
+  "author": "jirikrblich",
   "bar": { "icon": "sparkles" },
-  "homepage": "https://www.krea.ai/docs/api-reference/introduction",
+  "url": "https://jirikrblich.netlify.app",
+  "image": "docs/Header.jpg",
   "runLabel": "Generate",
   "main": "index.js",
   "secrets": [
@@ -33,8 +34,8 @@
           "label": "Krea 2 Medium"
         },
         {
-          "value": "krea/krea-2/turbo",
-          "label": "Krea 2 Turbo"
+          "value": "krea/krea-2/medium-turbo",
+          "label": "Krea 2 Medium Turbo"
         },
         {
           "value": "google/nano-banana-pro",
@@ -45,15 +46,39 @@
           "label": "Nano Banana"
         },
         {
-          "value": "black-forest-labs/flux-kontext",
+          "value": "google/nano-banana-2",
+          "label": "Nano Banana 2"
+        },
+        {
+          "value": "z-image/z-image",
+          "label": "Z Image"
+        },
+        {
+          "value": "bytedance/seedream-5-pro",
+          "label": "Seedream 5 Pro"
+        },
+        {
+          "value": "bytedance/seedream-5-lite",
+          "label": "Seedream 5 Lite"
+        },
+        {
+          "value": "openai/gpt-image-2.5-flare",
+          "label": "GPT Image 2.5 Flare"
+        },
+        {
+          "value": "openai/gpt-image-2.5-sunburst",
+          "label": "GPT Image 2.5 Sunburst"
+        },
+        {
+          "value": "bfl/flux-1-kontext-dev",
           "label": "FLUX Kontext"
         },
         {
-          "value": "black-forest-labs/flux-1.1-pro",
+          "value": "bfl/flux-1.1-pro",
           "label": "FLUX 1.1 Pro"
         },
         {
-          "value": "openai/chatgpt-image",
+          "value": "openai/gpt-image",
           "label": "ChatGPT Image"
         }
       ],
@@ -135,9 +160,7 @@
         "2K",
         "4K"
       ],
-      "help": "Krea 2 only offers 1K, so the list changes with the model.",
-      "optionsFrom": "resolutions",
-      "dependsOn": "model",
+      "help": "Not every model offers every size. A size the chosen model cannot make is ignored and its safe default is used.",
       "advanced": true
     },
     {

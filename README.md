@@ -27,7 +27,7 @@ The Marketplace installs the connector and keeps its settings and API token when
 1. Open the **Krea** connector.
 2. Choose a model and write a prompt.
 3. For image-to-image, choose a source under **Start from** — for example the current selection, layer, artboard, document, or an image file. Leave it on **Nothing** for text-to-image.
-4. Choose an aspect ratio. The available aspect ratios and resolutions adjust to the selected model.
+4. Choose an aspect ratio and resolution. The connector always offers 1K, 2K and 4K; if a model does not support the size you chose, it safely uses that model's default instead.
 5. Press **Generate**.
 
 ![Krea running from an Affinity document](docs/screenshot.png)
